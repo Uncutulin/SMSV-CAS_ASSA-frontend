@@ -17,18 +17,21 @@ import {
 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { motion } from 'motion/react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const SidebarItem = ({
   icon: Icon,
   label,
   active = false,
   expandable = false,
+  onClick,
   children
 }: {
   icon: any,
   label: string,
   active?: boolean,
   expandable?: boolean,
+  onClick?: () => void,
   children?: React.ReactNode
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -36,7 +39,10 @@ const SidebarItem = ({
   return (
     <div className="w-full">
       <button
-        onClick={() => expandable && setIsOpen(!isOpen)}
+        onClick={() => {
+          if (expandable) setIsOpen(!isOpen);
+          if (onClick) onClick();
+        }}
         className={cn(
           "w-full flex items-center justify-between px-6 py-3 transition-colors",
           active ? "bg-[#002244] text-white border-l-4 border-[#00AEEF]" : "text-blue-100/70 hover:text-white hover:bg-[#002244]/50"
@@ -62,7 +68,10 @@ const SidebarItem = ({
   );
 };
 
-export default function Sidebar({ onLogout }: { onLogout?: () => void }) {
+export default function Sidebar({ onLogout, user }: { onLogout?: () => void, user?: any }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const currentPath = location.pathname;
   return (
     <aside className="fixed left-0 top-0 h-screen w-72 z-40 bg-[#003865] border-r border-[#002244] shadow-2xl flex flex-col py-8">
       {/* Brand */}
@@ -84,7 +93,12 @@ export default function Sidebar({ onLogout }: { onLogout?: () => void }) {
           <span className="text-[10px] font-bold text-[#00AEEF]/80 uppercase tracking-widest">Módulos</span>
         </div>
 
-        <SidebarItem icon={LayoutDashboard} label="Dashboard" active />
+        <SidebarItem 
+          icon={LayoutDashboard} 
+          label="Dashboard" 
+          active={currentPath === '/dashboard'} 
+          onClick={() => navigate('/dashboard')} 
+        />
 
         <SidebarItem icon={BarChart} label="Directorio CAS/ASSA" expandable>
           <div className="space-y-3 py-2">
@@ -236,6 +250,16 @@ export default function Sidebar({ onLogout }: { onLogout?: () => void }) {
         <div className="mt-8 px-6 mb-4">
           <span className="text-[10px] font-bold text-[#00AEEF]/80 uppercase tracking-widest">Sistema</span>
         </div>
+        
+        {user?.local_role === 'Admin' && (
+          <SidebarItem 
+            icon={Users} 
+            label="Administración" 
+            active={currentPath === '/usuarios'} 
+            onClick={() => navigate('/usuarios')} 
+          />
+        )}
+        
         <SidebarItem icon={Settings} label="Configuración" />
       </nav>
 
