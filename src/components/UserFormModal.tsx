@@ -162,21 +162,31 @@ export default function UserFormModal({ isOpen, onClose, onSubmit, localRoles = 
                     {loadingRoles ? (
                         <p className="text-sm text-gray-500">Cargando roles...</p>
                     ) : (
-                        <div className="grid grid-cols-2 gap-2 p-3 bg-gray-50 rounded-md border border-gray-200 max-h-40 overflow-y-auto">
+                        <div className="grid grid-cols-1 gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200 max-h-48 overflow-y-auto">
                             {biRoles.length > 0 ? (
                                 biRoles.map((role) => (
-                                    <label key={role.id} className="flex items-center space-x-2 cursor-pointer p-1 hover:bg-gray-100 rounded">
+                                    <label
+                                        key={role.id}
+                                        className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer border-2 transition-all select-none ${
+                                            formData.roles.includes(role.name)
+                                                ? 'border-[#00AEEF] bg-[#00AEEF]/5 text-[#003865]'
+                                                : 'border-transparent bg-white hover:border-slate-200 text-slate-600'
+                                        }`}
+                                    >
                                         <input
                                             type="checkbox"
                                             checked={formData.roles.includes(role.name)}
                                             onChange={() => handleBiRoleChange(role.name)}
-                                            className="form-checkbox h-4 w-4 text-[#00AEEF] rounded border-gray-300 focus:ring-[#00AEEF]"
+                                            className="form-checkbox h-4 w-4 rounded text-[#00AEEF] border-gray-300 focus:ring-[#00AEEF]"
                                         />
-                                        <span className="text-sm text-gray-700">{role.name}</span>
+                                        <div className="flex items-center gap-2">
+                                            <ShieldCheck size={15} className={formData.roles.includes(role.name) ? 'text-[#00AEEF]' : 'text-slate-400'} />
+                                            <span className="text-sm font-semibold">{role.name}</span>
+                                        </div>
                                     </label>
                                 ))
                             ) : (
-                                <p className="text-sm text-gray-500 col-span-2">No se encontraron roles disponibles.</p>
+                                <p className="text-sm text-slate-400 py-2 text-center">No se encontraron roles disponibles.</p>
                             )}
                         </div>
                     )}

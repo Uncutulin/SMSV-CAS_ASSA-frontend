@@ -68,12 +68,29 @@ const SidebarItem = ({
   );
 };
 
-export default function Sidebar({ onLogout, user }: { onLogout?: () => void, user?: any }) {
+export default function Sidebar({ onLogout, user, isOpen, onClose }: { onLogout?: () => void, user?: any, isOpen?: boolean, onClose?: () => void }) {
   const navigate = useNavigate();
   const location = useLocation();
   const currentPath = location.pathname;
+
+  const userRoles = Array.isArray(user?.local_roles)
+    ? user.local_roles
+    : (user?.local_role ? user.local_role.split(',').map((r: string) => r.trim()).filter(Boolean) : []);
+
+  const isAdmin = userRoles.includes('Admin');
+  const isLegales = userRoles.includes('Legales');
+  const isCoberturas = userRoles.includes('Coberturas Aceptadas');
+
+  const handleNavigation = (path: string) => {
+    navigate(path);
+    onClose?.();
+  };
+
   return (
-    <aside className="fixed left-0 top-0 h-screen w-72 z-40 bg-[#003865] border-r border-[#002244] shadow-2xl flex flex-col py-8">
+    <aside className={cn(
+      "fixed left-0 top-0 h-screen w-72 z-40 bg-[#003865] border-r border-[#002244] shadow-2xl flex flex-col py-8 transition-transform duration-300 ease-in-out lg:translate-x-0",
+      isOpen ? "translate-x-0" : "-translate-x-full"
+    )}>
       {/* Brand */}
       <div className="px-6 mb-10 flex items-center gap-3">
         <svg width="40" height="40" viewBox="0 0 100 100" className="flex-shrink-0">
@@ -93,61 +110,49 @@ export default function Sidebar({ onLogout, user }: { onLogout?: () => void, use
           <span className="text-[10px] font-bold text-[#00AEEF]/80 uppercase tracking-widest">Módulos</span>
         </div>
 
-        <SidebarItem 
-          icon={LayoutDashboard} 
-          label="Dashboard" 
-          active={currentPath === '/dashboard'} 
-          onClick={() => navigate('/dashboard')} 
+        <SidebarItem
+          icon={LayoutDashboard}
+          label="Dashboard"
+          active={currentPath === '/dashboard'}
+          onClick={() => handleNavigation('/dashboard')}
         />
 
-        {(user?.local_role === 'Admin' || user?.local_role === 'Legales') && (
-          <SidebarItem 
-            icon={ShieldCheck} 
-            label="Coberturas Aceptadas" 
-            active={currentPath === '/coberturas'} 
-            onClick={() => navigate('/coberturas')} 
+        {(isAdmin || isLegales || isCoberturas) && (
+          <SidebarItem
+            icon={ShieldCheck}
+            label="Coberturas Aceptadas"
+            active={currentPath === '/coberturas'}
+            onClick={() => handleNavigation('/coberturas')}
           />
         )}
 
-        <div className="mt-8 px-6 mb-4">
-          <span className="text-[10px] font-bold text-[#00AEEF]/80 uppercase tracking-widest">Sistema</span>
-        </div>
-        
-        {user?.local_role === 'Admin' && (
-          <SidebarItem 
-            icon={Users} 
-            label="Administración" 
-            expandable
-          >
-            <div className="space-y-3 py-2">
-              <div 
-                onClick={() => navigate('/usuarios')} 
-                className={cn(
-                  "flex items-center gap-3 cursor-pointer transition-colors",
-                  currentPath === '/usuarios' ? "text-white font-semibold" : "text-blue-100/70 hover:text-white"
-                )}
-              >
-                <div className={cn("w-1.5 h-1.5 rounded-full", currentPath === '/usuarios' ? "bg-[#00AEEF]" : "bg-[#00AEEF]/60")} />
-                <span className="text-[12px]">Usuarios</span>
-              </div>
+        {isAdmin && (
+          <>
+            <div className="mt-8 px-6 mb-4">
+              <span className="text-[10px] font-bold text-[#00AEEF]/80 uppercase tracking-widest">Sistema</span>
             </div>
-          </SidebarItem>
+
+            <SidebarItem
+              icon={Users}
+              label="Administración"
+              expandable
+            >
+              <div className="space-y-3 py-2">
+                <div
+                  onClick={() => handleNavigation('/usuarios')}
+                  className={cn(
+                    "flex items-center gap-3 cursor-pointer transition-colors",
+                    currentPath === '/usuarios' ? "text-white font-semibold" : "text-blue-100/70 hover:text-white"
+                  )}
+                >
+                  <div className={cn("w-1.5 h-1.5 rounded-full", currentPath === '/usuarios' ? "bg-[#00AEEF]" : "bg-[#00AEEF]/60")} />
+                  <span className="text-[12px]">Usuarios</span>
+                </div>
+              </div>
+            </SidebarItem>
+          </>
         )}
       </nav>
-
-      {/* Footer */}
-      <div className="px-6 pt-4 border-t border-[#002244]">
-        {/*
-        <button className="w-full py-3 bg-[#00AEEF] text-white rounded-md font-semibold text-xs transition-all active:scale-[0.98] flex items-center justify-center gap-2 hover:bg-[#00AEEF]/80">
-          <Plus size={14} />
-          Nuevo Departamento
-        </button>
-        */}
-        <button onClick={onLogout} className="w-full text-blue-100/70 hover:text-white flex items-center py-3 mt-4 transition-all gap-4">
-          <LogOut size={20} />
-          <span className="text-[13px]">Cerrar Sesión</span>
-        </button>
-      </div>
     </aside>
   );
 }

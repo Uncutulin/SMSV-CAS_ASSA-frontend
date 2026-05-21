@@ -148,7 +148,7 @@ export default function Profile() {
 
     if (!user) {
         return (
-            <div className="pt-24 px-8 pb-12 flex items-center justify-center">
+            <div className="pt-24 px-4 md:px-8 pb-12 flex items-center justify-center">
                 <p className="text-slate-500">Cargando perfil...</p>
             </div>
         );
@@ -157,7 +157,7 @@ export default function Profile() {
     const initials = `${user.name?.charAt(0) || ''}${user.apellido?.charAt(0) || ''}`.toUpperCase();
 
     return (
-        <div className="pt-24 px-8 pb-12 animate-in fade-in duration-700">
+        <div className="pt-24 px-4 md:px-8 pb-12 animate-in fade-in duration-700">
             <div className="max-w-3xl mx-auto">
                 {/* Header */}
                 <div className="mb-8 flex items-center gap-4">
@@ -202,12 +202,12 @@ export default function Profile() {
                                         </span>
                                     ))}
                                     {/* Local Role */}
-                                    {user.local_role && (
-                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#003865]/10 text-[#003865]">
+                                    {user.local_role && user.local_role.split(',').map((role: string) => role.trim()).filter(Boolean).map((role: string) => (
+                                        <span key={role} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#003865]/10 text-[#003865]">
                                             <Shield size={11} />
-                                            {user.local_role} (Local)
+                                            {role === 'Admin' ? 'Administrador' : role} (Local)
                                         </span>
-                                    )}
+                                    ))}
                                 </div>
                                 <p className="text-xs text-slate-400 mt-2">Haz clic en la foto para cambiarla</p>
                             </div>

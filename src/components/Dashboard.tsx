@@ -46,21 +46,21 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="pt-24 px-8 pb-12 animate-in fade-in duration-700">
+    <div className="pt-24 px-4 md:px-8 pb-12 animate-in fade-in duration-700">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
         <div>
           <h2 className="text-3xl font-bold text-[#003865] tracking-tight">Resumen Ejecutivo</h2>
           <p className="text-slate-500 mt-1">Monitoreo de desempeño y KPIs para Gerencia General.</p>
         </div>
-        <div className="flex gap-3">
-          <button className="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 flex items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm">
+        <div className="flex gap-3 w-full md:w-auto">
+          <button className="flex-1 md:flex-none px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold text-slate-700 flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors shadow-sm">
             <Calendar size={16} />
             Últimos 30 Días
           </button>
           <button 
             onClick={() => navigate('/coberturas')}
-            className="px-4 py-2 bg-[#00AEEF] text-white rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-[#00AEEF]/80 transition-all active:scale-95 shadow-lg shadow-[#00AEEF]/20"
+            className="flex-1 md:flex-none px-4 py-2 bg-[#00AEEF] text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#00AEEF]/80 transition-all active:scale-95 shadow-lg shadow-[#00AEEF]/20"
           >
             <ShieldCheck size={16} />
             Ver Coberturas
