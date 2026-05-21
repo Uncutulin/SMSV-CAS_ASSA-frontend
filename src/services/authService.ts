@@ -7,6 +7,14 @@ const getAuthHeaders = (tempToken?: string) => {
     };
 };
 
+const handleJsonResponse = async (response: Response) => {
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('El servidor de la API no está configurado o no responde en la URL correcta (se recibió una respuesta no JSON).');
+    }
+    return response.json();
+};
+
 export const login = async (credentials: any, device_id?: string) => {
     const response = await fetch(`${API_URL}/login`, {
         method: 'POST',
@@ -17,7 +25,7 @@ export const login = async (credentials: any, device_id?: string) => {
         body: JSON.stringify({ ...credentials, device_id }),
     });
 
-    const data = await response.json();
+    const data = await handleJsonResponse(response);
     if (!response.ok) {
         throw new Error(data.message || 'Error en el inicio de sesión');
     }
@@ -35,7 +43,7 @@ export const twoFactorChallenge = async (code: string, tempToken?: string, devic
         body: JSON.stringify({ code, device_id }),
     });
 
-    const data = await response.json();
+    const data = await handleJsonResponse(response);
     if (!response.ok) {
         throw new Error(data.message || 'Código de autenticación inválido');
     }
@@ -51,6 +59,10 @@ export const enableTwoFactor = async (tempToken?: string) => {
         }
     });
     if (!response.ok) {
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('El servidor de la API no está configurado o no responde en la URL correcta (se recibió una respuesta no JSON).');
+        }
         throw new Error('Error al habilitar 2FA');
     }
     return response;
@@ -63,10 +75,11 @@ export const getTwoFactorQrCode = async (tempToken?: string) => {
             ...getAuthHeaders(tempToken)
         }
     });
+    const data = await handleJsonResponse(response);
     if (!response.ok) {
         throw new Error('Error al obtener QR de 2FA');
     }
-    return await response.json();
+    return data;
 };
 
 export const getTwoFactorSecretKey = async (tempToken?: string) => {
@@ -76,10 +89,11 @@ export const getTwoFactorSecretKey = async (tempToken?: string) => {
             ...getAuthHeaders(tempToken)
         }
     });
+    const data = await handleJsonResponse(response);
     if (!response.ok) {
         throw new Error('Error al obtener la clave secreta de 2FA');
     }
-    return await response.json();
+    return data;
 };
 
 export const confirmTwoFactor = async (code: string, tempToken?: string, device_id?: string) => {
@@ -93,7 +107,7 @@ export const confirmTwoFactor = async (code: string, tempToken?: string, device_
         body: JSON.stringify({ code, device_id }),
     });
 
-    const data = await response.json();
+    const data = await handleJsonResponse(response);
     if (!response.ok) {
         throw new Error(data.message || 'El código ingresado es incorrecto');
     }
@@ -110,7 +124,7 @@ export const forgotPassword = async (email: string) => {
         body: JSON.stringify({ email }),
     });
 
-    const data = await response.json();
+    const data = await handleJsonResponse(response);
     if (!response.ok) {
         throw new Error(data.message || 'No se pudo procesar la solicitud');
     }
