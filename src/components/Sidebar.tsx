@@ -100,152 +100,14 @@ export default function Sidebar({ onLogout, user }: { onLogout?: () => void, use
           onClick={() => navigate('/dashboard')} 
         />
 
-        <SidebarItem icon={BarChart} label="Directorio CAS/ASSA" expandable>
-          <div className="space-y-3 py-2">
-            <div className="flex items-center gap-3 text-blue-100/70 hover:text-white cursor-pointer transition-colors">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00AEEF]/60" />
-              <span className="text-[12px]">Presidente (CR Montenegro)</span>
-            </div>
-            <div className="flex items-center gap-3 text-blue-100/70 hover:text-white cursor-pointer transition-colors">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00AEEF]/60" />
-              <span className="text-[12px]">Vice (BR Palumbo)</span>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between group cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#00AEEF]/60" />
-                  <span className="text-[12px] font-medium text-blue-100/70 group-hover:text-white">Directores CAS</span>
-                </div>
-              </div>
-              <div className="pl-5 border-l border-[#00AEEF]/20 space-y-2 ml-1">
-                <div className="text-blue-100/50 hover:text-white text-[11px] cursor-pointer transition-colors">CL Ferraris</div>
-                <div className="text-blue-100/50 hover:text-white text-[11px] cursor-pointer transition-colors">CF Rodriguez</div>
-                <div className="text-blue-100/50 hover:text-white text-[11px] cursor-pointer transition-colors">DR. Bolado</div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between group cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#00AEEF]/60" />
-                  <span className="text-[12px] font-medium text-blue-100/70 group-hover:text-white">Directores ASSA</span>
-                </div>
-              </div>
-              <div className="pl-5 border-l border-[#00AEEF]/20 space-y-2 ml-1">
-                <div className="text-blue-100/50 hover:text-white text-[11px] cursor-pointer transition-colors">CR Di Nardo</div>
-                <div className="text-blue-100/50 hover:text-white text-[11px] cursor-pointer transition-colors">CR Sanchez Mariño</div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between group cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[#00AEEF]/60" />
-                  <span className="text-[12px] font-medium text-blue-100/70 group-hover:text-white">Comisión Fiscalizadora</span>
-                </div>
-              </div>
-              <div className="pl-5 border-l border-[#00AEEF]/20 space-y-2 ml-1">
-                <div className="text-blue-100/50 hover:text-white text-[11px] cursor-pointer transition-colors">CF Pomilio</div>
-                <div className="text-blue-100/50 hover:text-white text-[11px] cursor-pointer transition-colors">CR Sinopoli</div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 text-blue-100/70 hover:text-white cursor-pointer transition-colors mt-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00AEEF]/60" />
-              <span className="text-[12px]">Auditoría Interna</span>
-            </div>
-            <div className="flex items-center gap-3 text-blue-100/70 hover:text-white cursor-pointer transition-colors">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00AEEF]/60" />
-              <span className="text-[12px]">Control y Prev. Lavado Dinero</span>
-            </div>
-          </div>
-        </SidebarItem>
-
-        <SidebarItem icon={Building2} label="Gerencia General" expandable>
-          <div className="space-y-3 py-2">
-            <div className="flex items-center gap-3 text-blue-100/70 hover:text-white cursor-pointer transition-colors">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00AEEF]/60" />
-              <span className="text-[12px]">De Luca, Mariano</span>
-            </div>
-            <div className="flex items-center gap-3 text-blue-100/70 hover:text-white cursor-pointer transition-colors">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00AEEF]/60" />
-              <span className="text-[12px]">Canal Directo</span>
-            </div>
-            <div className="flex items-center gap-3 text-blue-100/70 hover:text-white cursor-pointer transition-colors">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00AEEF]/60" />
-              <span className="text-[12px]">Tecnología y Proyectos</span>
-            </div>
-          </div>
-        </SidebarItem>
-
-        <SidebarItem icon={Settings2} label="Gerencia Operaciones" expandable>
-          <div className="space-y-3 py-2">
-            <div className="flex items-center gap-3 text-blue-100/70 hover:text-white cursor-pointer transition-colors">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00AEEF]/60" />
-              <span className="text-[12px]">Martinez, Marta</span>
-            </div>
-            <div className="flex items-center gap-3 text-blue-100/70 hover:text-white cursor-pointer transition-colors">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00AEEF]/60" />
-              <span className="text-[12px]">Operaciones Broker</span>
-            </div>
-            <div className="flex items-center gap-3 text-blue-100/70 hover:text-white cursor-pointer transition-colors">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00AEEF]/60" />
-              <span className="text-[12px]">Operaciones Vida</span>
-            </div>
-          </div>
-        </SidebarItem>
-
-        <SidebarItem icon={Wallet} label="Gerencia Comercial" expandable>
-          <div className="space-y-3 py-2">
-            <div className="flex items-center gap-3 text-blue-100/70 hover:text-white cursor-pointer transition-colors">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00AEEF]/60" />
-              <span className="text-[12px]">Canal Corporativo</span>
-            </div>
-            <div className="flex items-center gap-3 text-blue-100/70 hover:text-white cursor-pointer transition-colors">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00AEEF]/60" />
-              <span className="text-[12px]">Canal Productores/Filiales</span>
-            </div>
-            <div className="flex items-center gap-3 text-blue-100/70 hover:text-white cursor-pointer transition-colors">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00AEEF]/60" />
-              <span className="text-[12px]">Venta Directa / Plan. Comercial</span>
-            </div>
-          </div>
-        </SidebarItem>
-
-        <SidebarItem icon={Calculator} label="Gerencia Técnico-Actuarial" expandable>
-          <div className="space-y-3 py-2">
-            <div className="flex items-center gap-3 text-blue-100/70 hover:text-white cursor-pointer transition-colors">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00AEEF]/60" />
-              <span className="text-[12px]">Nasroulah, Pablo</span>
-            </div>
-            <div className="flex items-center gap-3 text-blue-100/70 hover:text-white cursor-pointer transition-colors">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00AEEF]/60" />
-              <span className="text-[12px]">Técnico Actuarial</span>
-            </div>
-          </div>
-        </SidebarItem>
-
-        <SidebarItem icon={Landmark} label="Gerencia Admin. y Fin." expandable>
-          <div className="space-y-3 py-2">
-            <div className="flex items-center gap-3 text-blue-100/70 hover:text-white cursor-pointer transition-colors">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00AEEF]/60" />
-              <span className="text-[12px]">Ezcurra, Raul</span>
-            </div>
-            <div className="flex items-center gap-3 text-blue-100/70 hover:text-white cursor-pointer transition-colors">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00AEEF]/60" />
-              <span className="text-[12px]">Administración</span>
-            </div>
-            <div className="flex items-center gap-3 text-blue-100/70 hover:text-white cursor-pointer transition-colors">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00AEEF]/60" />
-              <span className="text-[12px]">Cobranzas</span>
-            </div>
-            <div className="flex items-center gap-3 text-blue-100/70 hover:text-white cursor-pointer transition-colors">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#00AEEF]/60" />
-              <span className="text-[12px]">Inversiones</span>
-            </div>
-          </div>
-        </SidebarItem>
+        {(user?.local_role === 'Admin' || user?.local_role === 'Legales') && (
+          <SidebarItem 
+            icon={ShieldCheck} 
+            label="Coberturas Aceptadas" 
+            active={currentPath === '/coberturas'} 
+            onClick={() => navigate('/coberturas')} 
+          />
+        )}
 
         <div className="mt-8 px-6 mb-4">
           <span className="text-[10px] font-bold text-[#00AEEF]/80 uppercase tracking-widest">Sistema</span>
@@ -255,12 +117,22 @@ export default function Sidebar({ onLogout, user }: { onLogout?: () => void, use
           <SidebarItem 
             icon={Users} 
             label="Administración" 
-            active={currentPath === '/usuarios'} 
-            onClick={() => navigate('/usuarios')} 
-          />
+            expandable
+          >
+            <div className="space-y-3 py-2">
+              <div 
+                onClick={() => navigate('/usuarios')} 
+                className={cn(
+                  "flex items-center gap-3 cursor-pointer transition-colors",
+                  currentPath === '/usuarios' ? "text-white font-semibold" : "text-blue-100/70 hover:text-white"
+                )}
+              >
+                <div className={cn("w-1.5 h-1.5 rounded-full", currentPath === '/usuarios' ? "bg-[#00AEEF]" : "bg-[#00AEEF]/60")} />
+                <span className="text-[12px]">Usuarios</span>
+              </div>
+            </div>
+          </SidebarItem>
         )}
-        
-        <SidebarItem icon={Settings} label="Configuración" />
       </nav>
 
       {/* Footer */}

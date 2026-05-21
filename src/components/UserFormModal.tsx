@@ -1,26 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import Modal from './ui/Modal';
 import Swal from 'sweetalert2';
+import { ShieldCheck } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export interface UserFormData {
     name: string;
     apellido: string;
     dni: string;
     email: string;
-    roles: string[]; // BI Roles
-    local_role: string; // Local Role (Admin, Legales, etc)
+    roles: string[];        // BI Roles
+    local_roles: string[];  // Local CAS-ASSA Roles (from DB)
 }
 
 interface UserFormModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSubmit: (data: UserFormData) => void;
+    localRoles?: string[]; // Passed in from parent (already fetched from DB)
 }
 
-export default function UserFormModal({ isOpen, onClose, onSubmit }: UserFormModalProps) {
-    const [roles, setRoles] = useState<any[]>([]);
+export default function UserFormModal({ isOpen, onClose, onSubmit, localRoles = [] }: UserFormModalProps) {
+    const [biRoles, setBiRoles] = useState<any[]>([]);
     const [loadingRoles, setLoadingRoles] = useState(false);
     const [formData, setFormData] = useState<UserFormData>({
         name: '',
@@ -28,7 +30,7 @@ export default function UserFormModal({ isOpen, onClose, onSubmit }: UserFormMod
         dni: '',
         email: '',
         roles: [],
-        local_role: ''
+        local_roles: []
     });
 
     useEffect(() => {
@@ -39,25 +41,23 @@ export default function UserFormModal({ isOpen, onClose, onSubmit }: UserFormMod
                 dni: '',
                 email: '',
                 roles: [],
-                local_role: ''
+                local_roles: []
             });
-            loadRoles();
+            loadBiRoles();
         }
     }, [isOpen]);
 
-    const loadRoles = async () => {
-        if (roles.length > 0) return;
+    const loadBiRoles = async () => {
+        if (biRoles.length > 0) return;
         setLoadingRoles(true);
         try {
             const token = localStorage.getItem('auth_token');
             const response = await fetch(`${API_URL}/admin/roles`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
                 const data = await response.json();
-                setRoles(data);
+                setBiRoles(data);
             }
         } catch (e) {
             console.error('Error loading BI roles', e);
@@ -66,25 +66,28 @@ export default function UserFormModal({ isOpen, onClose, onSubmit }: UserFormMod
         }
     };
 
-    const handleRoleChange = (roleName: string) => {
+    const handleBiRoleChange = (roleName: string) => {
         setFormData(prev => {
             const currentRoles = prev.roles;
             let newRoles: string[];
-
             if (roleName === 'admin') {
-                if (currentRoles.includes('admin')) {
-                    newRoles = [];
-                } else {
-                    newRoles = ['admin'];
-                }
+                newRoles = currentRoles.includes('admin') ? [] : ['admin'];
             } else {
-                if (currentRoles.includes(roleName)) {
-                    newRoles = currentRoles.filter(r => r !== roleName);
-                } else {
-                    newRoles = [...currentRoles.filter(r => r !== 'admin'), roleName];
-                }
+                newRoles = currentRoles.includes(roleName)
+                    ? currentRoles.filter(r => r !== roleName)
+                    : [...currentRoles.filter(r => r !== 'admin'), roleName];
             }
             return { ...prev, roles: newRoles };
+        });
+    };
+
+    const handleLocalRoleChange = (roleName: string) => {
+        setFormData(prev => {
+            const current = prev.local_roles;
+            const updated = current.includes(roleName)
+                ? current.filter(r => r !== roleName)
+                : [...current, roleName];
+            return { ...prev, local_roles: updated };
         });
     };
 
@@ -105,11 +108,7 @@ export default function UserFormModal({ isOpen, onClose, onSubmit }: UserFormMod
     };
 
     return (
-        <Modal
-            isOpen={isOpen}
-            onClose={onClose}
-            title="Agregar Nuevo Usuario"
-        >
+        <Modal isOpen={isOpen} onClose={onClose} title="Agregar Nuevo Usuario">
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -157,19 +156,20 @@ export default function UserFormModal({ isOpen, onClose, onSubmit }: UserFormMod
                     </div>
                 </div>
 
+                {/* BI Roles */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Roles BI *</label>
                     {loadingRoles ? (
                         <p className="text-sm text-gray-500">Cargando roles...</p>
                     ) : (
                         <div className="grid grid-cols-2 gap-2 p-3 bg-gray-50 rounded-md border border-gray-200 max-h-40 overflow-y-auto">
-                            {roles.length > 0 ? (
-                                roles.map((role) => (
+                            {biRoles.length > 0 ? (
+                                biRoles.map((role) => (
                                     <label key={role.id} className="flex items-center space-x-2 cursor-pointer p-1 hover:bg-gray-100 rounded">
                                         <input
                                             type="checkbox"
                                             checked={formData.roles.includes(role.name)}
-                                            onChange={() => handleRoleChange(role.name)}
+                                            onChange={() => handleBiRoleChange(role.name)}
                                             className="form-checkbox h-4 w-4 text-[#00AEEF] rounded border-gray-300 focus:ring-[#00AEEF]"
                                         />
                                         <span className="text-sm text-gray-700">{role.name}</span>
@@ -182,17 +182,38 @@ export default function UserFormModal({ isOpen, onClose, onSubmit }: UserFormMod
                     )}
                 </div>
 
+                {/* Local Roles (from DB) */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Rol Local (CAS-ASSA)</label>
-                    <select
-                        value={formData.local_role}
-                        onChange={(e) => setFormData({ ...formData, local_role: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#00AEEF] bg-white"
-                    >
-                        <option value="">Sin Rol (Desactivado)</option>
-                        <option value="Admin">Administrador</option>
-                        <option value="Legales">Legales</option>
-                    </select>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Roles Locales CAS-ASSA
+                    </label>
+                    <div className="grid grid-cols-1 gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                        {localRoles.length > 0 ? localRoles.map(role => (
+                            <label
+                                key={role}
+                                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer border-2 transition-all select-none ${
+                                    formData.local_roles.includes(role)
+                                        ? 'border-[#00AEEF] bg-[#00AEEF]/5 text-[#003865]'
+                                        : 'border-transparent bg-white hover:border-slate-200 text-slate-600'
+                                }`}
+                            >
+                                <input
+                                    type="checkbox"
+                                    checked={formData.local_roles.includes(role)}
+                                    onChange={() => handleLocalRoleChange(role)}
+                                    className="form-checkbox h-4 w-4 rounded text-[#00AEEF] border-gray-300 focus:ring-[#00AEEF]"
+                                />
+                                <div className="flex items-center gap-2">
+                                    <ShieldCheck size={15} className={formData.local_roles.includes(role) ? 'text-[#00AEEF]' : 'text-slate-400'} />
+                                    <span className="text-sm font-semibold">{role}</span>
+                                </div>
+                            </label>
+                        )) : (
+                            <p className="text-sm text-slate-400 py-1">
+                                Sin roles locales disponibles (Sin Rol = desactivado).
+                            </p>
+                        )}
+                    </div>
                 </div>
 
                 <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
