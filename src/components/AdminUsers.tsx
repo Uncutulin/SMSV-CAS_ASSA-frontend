@@ -1,9 +1,96 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Swal from 'sweetalert2';
-import { Search, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Plus, ChevronLeft, ChevronRight, ShieldCheck, X } from 'lucide-react';
 import UserFormModal, { UserFormData } from './UserFormModal';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
+
+interface RoleModalProps {
+  user: any;
+  localRoles: string[];
+  onClose: () => void;
+  onSave: (email: string, roles: string[]) => void;
+}
+
+function RoleAssignModal({ user, localRoles, onClose, onSave }: RoleModalProps) {
+  const [selected, setSelected] = useState<string[]>(
+    Array.isArray(user.local_roles)
+      ? user.local_roles
+      : (user.local_role ? user.local_role.split(',').map((r: string) => r.trim()).filter(Boolean) : [])
+  );
+
+  const toggle = (role: string) => {
+    setSelected(prev => prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role]);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h3 className="text-lg font-bold text-[#003865]">Asignar Roles Locales</h3>
+            <p className="text-sm text-slate-500 mt-0.5">{user.name} {user.apellido} &mdash; {user.email}</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="mb-1">
+          <p className="text-sm font-medium text-slate-700 mb-3">Seleccioná uno o más roles para este usuario:</p>
+          <div className="grid grid-cols-1 gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+            {localRoles.map(role => (
+              <label
+                key={role}
+                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer border-2 transition-all select-none ${
+                  selected.includes(role)
+                    ? 'border-[#00AEEF] bg-[#00AEEF]/5 text-[#003865]'
+                    : 'border-transparent bg-white hover:border-slate-200 text-slate-600'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={selected.includes(role)}
+                  onChange={() => toggle(role)}
+                  className="form-checkbox h-4 w-4 rounded text-[#00AEEF] border-gray-300 focus:ring-[#00AEEF]"
+                />
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={16} className={selected.includes(role) ? 'text-[#00AEEF]' : 'text-slate-400'} />
+                  <span className="text-sm font-semibold">{role}</span>
+                </div>
+              </label>
+            ))}
+            {localRoles.length === 0 && (
+              <p className="text-sm text-slate-400 py-2 text-center">No hay roles disponibles.</p>
+            )}
+          </div>
+        </div>
+
+        {selected.length === 0 && (
+          <p className="text-xs text-amber-600 mt-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            Sin roles asignados el usuario quedará desactivado en la aplicación.
+          </p>
+        )}
+
+        <div className="flex justify-end gap-3 mt-5 pt-4 border-t border-slate-100">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-slate-600 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={() => onSave(user.email, selected)}
+            className="px-4 py-2 text-sm font-medium bg-[#00AEEF] text-white rounded-lg hover:bg-[#003865] transition-colors"
+          >
+            Guardar Roles
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminUsers() {
   const [users, setUsers] = useState<any[]>([]);
@@ -12,24 +99,23 @@ export default function AdminUsers() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [roleModalUser, setRoleModalUser] = useState<any | null>(null);
+  const [localRoles, setLocalRoles] = useState<string[]>([]);
 
   useEffect(() => {
     fetchUsers();
+    fetchLocalRoles();
   }, []);
 
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_URL}/admin/users`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
         const data = await response.json();
         setUsers(data);
-      } else {
-        console.error('Error fetching users');
       }
     } catch (e) {
       console.error(e);
@@ -38,43 +124,41 @@ export default function AdminUsers() {
     }
   };
 
-  const handleChangeRole = async (user: any) => {
-    const { value: role } = await Swal.fire({
-      title: 'Cambiar Rol Local',
-      input: 'select',
-      inputOptions: {
-        '': 'Sin Rol (Desactivado)',
-        'Admin': 'Administrador',
-        'Legales': 'Legales'
-      },
-      inputValue: user.local_role || '',
-      showCancelButton: true,
-      confirmButtonText: 'Guardar',
-      cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#003865',
-    });
-
-    if (role !== undefined) {
-      try {
-        const token = localStorage.getItem('auth_token');
-        const response = await fetch(`${API_URL}/admin/users/${encodeURIComponent(user.email)}/role`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ role: role === '' ? null : role, name: user.name })
-        });
-
-        if (response.ok) {
-          Swal.fire({ icon: 'success', title: 'Rol actualizado', timer: 1500, showConfirmButton: false });
-          fetchUsers();
-        } else {
-          Swal.fire('Error', 'No se pudo actualizar el rol', 'error');
-        }
-      } catch (e) {
-        console.error(e);
+  const fetchLocalRoles = async () => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${API_URL}/admin/local-roles`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setLocalRoles(data.map((r: any) => r.name));
       }
+    } catch (e) {
+      console.error('Error loading local roles:', e);
+      setLocalRoles(['Admin', 'Legales']);
+    }
+  };
+
+  const handleSaveRoles = async (email: string, roles: string[]) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${API_URL}/admin/users/${encodeURIComponent(email)}/role`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ roles })
+      });
+
+      if (response.ok) {
+        Swal.fire({ icon: 'success', title: 'Roles actualizados', timer: 1500, showConfirmButton: false });
+        setRoleModalUser(null);
+        fetchUsers();
+      } else {
+        Swal.fire('Error', 'No se pudieron actualizar los roles', 'error');
+      }
+    } catch (e) {
+      console.error(e);
+      Swal.fire('Error', 'Error de conexión', 'error');
     }
   };
 
@@ -83,13 +167,10 @@ export default function AdminUsers() {
       const token = localStorage.getItem('auth_token');
       const response = await fetch(`${API_URL}/admin/users`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(formData)
       });
-      
+
       if (response.ok) {
         Swal.fire({ icon: 'success', title: 'Usuario creado', timer: 1500, showConfirmButton: false });
         setIsModalOpen(false);
@@ -116,9 +197,7 @@ export default function AdminUsers() {
     });
   }, [users, searchTerm]);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
+  useEffect(() => { setCurrentPage(1); }, [searchTerm]);
 
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage) || 1;
   const paginatedUsers = useMemo(() => {
@@ -143,11 +222,9 @@ export default function AdminUsers() {
       <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-[#003865]">Administración de Usuarios</h2>
-          <p className="text-sm text-slate-500 mt-1">
-            Gestiona los permisos de acceso local a la aplicación.
-          </p>
+          <p className="text-sm text-slate-500 mt-1">Gestiona los permisos de acceso local a la aplicación.</p>
         </div>
-        
+
         <div className="flex flex-col sm:flex-row items-center gap-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -177,51 +254,66 @@ export default function AdminUsers() {
                 <th className="px-6 py-4">Usuario</th>
                 <th className="px-6 py-4">DNI</th>
                 <th className="px-6 py-4">Estado (Local)</th>
-                <th className="px-6 py-4">Rol (Local)</th>
+                <th className="px-6 py-4">Roles (Local)</th>
                 <th className="px-6 py-4 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {paginatedUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      {user.avatar_url ? (
-                        <img src={user.avatar_url} alt="Avatar" className="w-8 h-8 rounded-full bg-slate-200 object-cover" />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-xs">
-                          {user.name?.charAt(0)}
+              {paginatedUsers.map((user) => {
+                const userRoles: string[] = Array.isArray(user.local_roles)
+                  ? user.local_roles
+                  : (user.local_role ? user.local_role.split(',').map((r: string) => r.trim()).filter(Boolean) : []);
+
+                return (
+                  <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        {user.avatar_url ? (
+                          <img src={user.avatar_url} alt="Avatar" className="w-8 h-8 rounded-full bg-slate-200 object-cover" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-xs">
+                            {user.name?.charAt(0)}
+                          </div>
+                        )}
+                        <div>
+                          <div className="font-medium text-slate-800 text-[13px]">{user.name} {user.apellido}</div>
+                          <div className="text-xs text-slate-500">{user.email}</div>
                         </div>
-                      )}
-                      <div>
-                        <div className="font-medium text-slate-800 text-[13px]">{user.name} {user.apellido}</div>
-                        <div className="text-xs text-slate-500">{user.email}</div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-[13px] text-slate-600">
-                    {user.dni || '-'}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${
-                      user.status === 'activo' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
-                    }`}>
-                      {user.status === 'activo' ? 'Activo' : 'Desactivado'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-[13px] font-medium text-[#003865]">
-                    {user.local_role || 'Sin Rol'}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => handleChangeRole(user)}
-                      className="text-xs font-medium text-[#00AEEF] hover:text-[#003865] bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded transition-colors"
-                    >
-                      Cambiar Rol
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-6 py-4 text-[13px] text-slate-600">{user.dni || '-'}</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold ${
+                        user.status === 'activo' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {user.status === 'activo' ? 'Activo' : 'Desactivado'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {userRoles.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {userRoles.map(role => (
+                            <span key={role} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#00AEEF]/10 text-[#003865] border border-[#00AEEF]/20">
+                              <ShieldCheck size={10} className="text-[#00AEEF]" />
+                              {role}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-[13px] text-slate-400 italic">Sin Rol</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => setRoleModalUser(user)}
+                        className="text-xs font-medium text-[#00AEEF] hover:text-[#003865] bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded transition-colors"
+                      >
+                        Cambiar Roles
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
               {paginatedUsers.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-6 py-8 text-center text-sm text-slate-500">
@@ -233,7 +325,6 @@ export default function AdminUsers() {
           </table>
         </div>
 
-        {/* Pagination Controls */}
         <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-slate-50">
           <div className="text-xs text-slate-500">
             Mostrando <span className="font-medium text-slate-700">{filteredUsers.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1}</span> a <span className="font-medium text-slate-700">{Math.min(currentPage * itemsPerPage, filteredUsers.length)}</span> de <span className="font-medium text-slate-700">{filteredUsers.length}</span> usuarios
@@ -246,9 +337,7 @@ export default function AdminUsers() {
             >
               <ChevronLeft size={16} />
             </button>
-            <span className="text-xs font-medium text-slate-600">
-              Página {currentPage} de {totalPages}
-            </span>
+            <span className="text-xs font-medium text-slate-600">Página {currentPage} de {totalPages}</span>
             <button
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
@@ -260,11 +349,21 @@ export default function AdminUsers() {
         </div>
       </div>
 
-      <UserFormModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onSubmit={handleCreateUser} 
+      <UserFormModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleCreateUser}
+        localRoles={localRoles}
       />
+
+      {roleModalUser && (
+        <RoleAssignModal
+          user={roleModalUser}
+          localRoles={localRoles}
+          onClose={() => setRoleModalUser(null)}
+          onSave={handleSaveRoles}
+        />
+      )}
     </div>
   );
 }

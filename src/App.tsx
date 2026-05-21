@@ -11,6 +11,8 @@ import Dashboard from './components/Dashboard';
 import Login from './components/Login';
 import AdminUsers from './components/AdminUsers';
 import Profile from './components/Profile';
+import AceptarCobertura from './components/AceptarCobertura';
+import CoberturasAceptadas from './components/CoberturasAceptadas';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -20,6 +22,7 @@ export default function App() {
   const handleLogin = () => {
     localStorage.setItem('isAuthenticated', 'true');
     setIsAuthenticated(true);
+    window.location.href = '/dashboard';
   };
 
   const handleLogout = () => {
@@ -30,28 +33,40 @@ export default function App() {
     setIsAuthenticated(false);
   };
 
-  if (!isAuthenticated) {
-    return <Login onLogin={handleLogin} />;
-  }
-
   const userDataString = localStorage.getItem('user_data');
   const user = userDataString ? JSON.parse(userDataString) : null;
 
   return (
     <Router>
-      <div className="min-h-screen bg-slate-50 flex">
-        <Sidebar onLogout={handleLogout} user={user} />
-        <main className="flex-grow ml-72 relative">
-          <TopNav user={user} onLogout={handleLogout} />
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/usuarios" element={user?.local_role === 'Admin' ? <AdminUsers /> : <Navigate to="/dashboard" replace />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </main>
-      </div>
+      <Routes>
+        {/* Ruta pública */}
+        <Route path="/AceptarCobertura" element={<AceptarCobertura />} />
+
+        {/* Rutas protegidas */}
+        <Route
+          path="/*"
+          element={
+            !isAuthenticated ? (
+              <Login onLogin={handleLogin} />
+            ) : (
+              <div className="min-h-screen bg-slate-50 flex">
+                <Sidebar onLogout={handleLogout} user={user} />
+                <main className="flex-grow ml-72 relative">
+                  <TopNav user={user} onLogout={handleLogout} />
+                  <Routes>
+                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/usuarios" element={user?.local_role === 'Admin' ? <AdminUsers /> : <Navigate to="/dashboard" replace />} />
+                    <Route path="/coberturas" element={<CoberturasAceptadas />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                  </Routes>
+                </main>
+              </div>
+            )
+          }
+        />
+      </Routes>
     </Router>
   );
 }
