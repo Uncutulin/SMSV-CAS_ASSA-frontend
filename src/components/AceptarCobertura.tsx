@@ -18,7 +18,9 @@ export default function AceptarCobertura() {
     nombre: '',
     dni: '',
     numero_poliza: '',
-    fecha_vigencia: ''
+    fecha_vigencia: '',
+    src_file: '',
+    batch_id: ''
   });
 
   // Prevent duplicate requests during React StrictMode mount
@@ -29,15 +31,17 @@ export default function AceptarCobertura() {
     const parsedParams = {
       email: query.get('email') || '',
       name: query.get('name') || '',
-      templateid: query.get('templateid') || '',
-      attach1: query.get('attach1') || '',
+      templateid: query.get('templateid') || query.get('template') || '',
+      attach1: query.get('attach1') || query.get('adjunto') || '',
       attach2: query.get('attach2') || '',
       attach3: query.get('attach3') || '',
       attach4: query.get('attach4') || '',
       nombre: query.get('nombre') || '',
       dni: query.get('dni') || '',
-      numero_poliza: query.get('numero_poliza') || query.get('numero poliza') || '',
-      fecha_vigencia: query.get('fecha_vigencia') || query.get('vigencia') || ''
+      numero_poliza: query.get('numero_poliza') || query.get('numero poliza') || query.get('poliza') || '',
+      fecha_vigencia: query.get('fecha_vigencia') || query.get('vigencia') || '',
+      src_file: query.get('src_file') || query.get('archivo') || '',
+      batch_id: query.get('batch_id') || query.get('grupo') || query.get('lote') || ''
     };
     setParams(parsedParams);
 
@@ -73,6 +77,18 @@ export default function AceptarCobertura() {
       }
 
       setAccepted(true);
+      if (data.data) {
+        setParams(prev => ({
+          ...prev,
+          nombre: data.data.nombre || prev.nombre,
+          name: data.data.nombre || prev.name,
+          dni: data.data.dni || prev.dni,
+          numero_poliza: data.data.numero_poliza || prev.numero_poliza,
+          fecha_vigencia: data.data.fecha_vigencia || prev.fecha_vigencia,
+          src_file: data.data.src_file || prev.src_file,
+          batch_id: data.data.batch_id || prev.batch_id
+        }));
+      }
       const dbDate = data.data && data.data.created_at ? data.data.created_at : null;
       const dateToUse = dbDate ? new Date(dbDate) : new Date();
       setAcceptanceDate(dateToUse.toLocaleString('es-AR', { dateStyle: 'long', timeStyle: 'short' }));
@@ -164,6 +180,10 @@ export default function AceptarCobertura() {
                 <span className="text-xs font-bold text-white text-right break-words">{params.nombre || params.name || 'N/A'}</span>
               </div>
               <div className="flex justify-between items-start gap-4">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider whitespace-nowrap">DNI</span>
+                <span className="text-xs font-bold text-white text-right">{params.dni || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between items-start gap-4">
                 <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider whitespace-nowrap">Email</span>
                 <span className="text-xs font-bold text-white text-right break-all">{params.email}</span>
               </div>
@@ -171,6 +191,12 @@ export default function AceptarCobertura() {
                 <div className="flex justify-between items-start gap-4">
                   <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider whitespace-nowrap">Vigencia</span>
                   <span className="text-xs font-bold text-[#00AEEF] text-right break-words">{params.fecha_vigencia}</span>
+                </div>
+              )}
+              {params.src_file && (
+                <div className="flex justify-between items-start gap-4">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider whitespace-nowrap">Archivo</span>
+                  <span className="text-xs font-bold text-white text-right break-all">{params.src_file}</span>
                 </div>
               )}
               <div className="flex justify-between border-t border-white/5 pt-2 mt-2">
