@@ -430,8 +430,17 @@ export default function CoberturasAceptadas() {
     // Apply the current filters (search term and dates)
     recordsToExport = recordsToExport.filter(item => {
       // Apply date filter
-      if (item.created_at) {
-        const itemTime = parseDateString(item.created_at).getTime();
+      const isConfirmed = item.poliza_confirmada === true ||
+        item.poliza_confirmada === 1 ||
+        item.poliza_confirmada === '1' ||
+        item.poliza_confirmada === 'true';
+
+      const dateToUse = (selectedBatchId !== null && isConfirmed)
+        ? item.confirmado_at
+        : item.created_at;
+
+      if (dateToUse) {
+        const itemTime = parseDateString(dateToUse).getTime();
         if (startDate) {
           const startMs = parseDateString(startDate + 'T00:00:00').getTime();
           if (itemTime < startMs) return false;
@@ -610,9 +619,16 @@ export default function CoberturasAceptadas() {
       );
       if (!matchesSearch) return false;
 
-      // 2. Date range filter (by ingestion/created_at date)
-      if (cobertura.created_at) {
-        const itemTime = parseDateString(cobertura.created_at).getTime();
+      // 2. Date range filter (by confirmado_at if confirmed, otherwise created_at)
+      const isConfirmed = cobertura.poliza_confirmada === true ||
+        cobertura.poliza_confirmada === 1 ||
+        cobertura.poliza_confirmada === '1' ||
+        cobertura.poliza_confirmada === 'true';
+
+      const dateToUse = isConfirmed ? cobertura.confirmado_at : cobertura.created_at;
+
+      if (dateToUse) {
+        const itemTime = parseDateString(dateToUse).getTime();
         if (startDate) {
           const startMs = parseDateString(startDate + 'T00:00:00').getTime();
           if (itemTime < startMs) return false;
@@ -906,7 +922,6 @@ export default function CoberturasAceptadas() {
                   <th className="px-6 py-4">Asegurado / Email</th>
                   <th className="px-6 py-4">DNI</th>
                   <th className="px-6 py-4">Nº Póliza</th>
-                  <th className="px-6 py-4">Vigencia</th>
                   <th className="px-6 py-4">Adjunto 1</th>
                   <th className="px-6 py-4">Template ID</th>
                   <th className="px-6 py-4">Fecha Aceptación</th>
@@ -915,7 +930,7 @@ export default function CoberturasAceptadas() {
               <tbody className="divide-y divide-slate-100">
                 {paginatedCoberturas.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-10 text-center text-slate-400 text-sm">
+                    <td colSpan={6} className="px-6 py-10 text-center text-slate-400 text-sm">
                       No se encontraron registros de coberturas en este archivo.
                     </td>
                   </tr>
@@ -950,16 +965,7 @@ export default function CoberturasAceptadas() {
                             {cobertura.numero_poliza || '-'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-[12px] text-slate-600 font-medium">
-                          {cobertura.fecha_vigencia ? (
-                            <div className="flex items-center gap-1.5">
-                              <Calendar size={13} className="text-slate-400" />
-                              <span>{cobertura.fecha_vigencia}</span>
-                            </div>
-                          ) : (
-                            '-'
-                          )}
-                        </td>
+
                         <td className="px-6 py-4">
                           {cobertura.attach1 ? (
                             (() => {
@@ -992,7 +998,7 @@ export default function CoberturasAceptadas() {
                           {cobertura.templateid || '-'}
                         </td>
                         <td className="px-6 py-4 text-[12px] text-slate-600">
-                          {formatDate(cobertura.created_at)}
+                          {formatDate(cobertura.confirmado_at)}
                         </td>
                       </tr>
                     );
