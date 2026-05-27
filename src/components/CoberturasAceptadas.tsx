@@ -99,14 +99,10 @@ export default function CoberturasAceptadas() {
   }, [coberturas, selectedBatchId]);
 
   const fetchExistingFiles = async () => {
-    if (!selectedBatchId) return;
     setLoadingExisting(true);
     try {
-      const batch = groupedBatches.find(b => b.key === selectedBatchId);
-      const prefix = batch ? batch.src_file : selectedBatchId;
-
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${API_URL}/admin/r2/existing-files?prefix=${encodeURIComponent(prefix)}`, {
+      const response = await fetch(`${API_URL}/admin/r2/existing-files`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -123,18 +119,19 @@ export default function CoberturasAceptadas() {
     }
   };
 
+  // Fetch all existing files on mount
   useEffect(() => {
-    if (selectedBatchId !== null) {
-      fetchExistingFiles();
-    } else {
-      setExistingFiles([]);
-    }
-  }, [selectedBatchId, groupedBatches]);
+    fetchExistingFiles();
+  }, []);
 
-  const handleDownloadFile = async (fileName: string) => {
-    if (!selectedBatchId) return;
-    const batch = groupedBatches.find(b => b.key === selectedBatchId);
-    const batchName = batch ? batch.src_file : selectedBatchId;
+  const handleDownloadFile = async (fileName: string, customBatchName?: string) => {
+    const batchName = customBatchName || (() => {
+      if (!selectedBatchId) return '';
+      const batch = groupedBatches.find(b => b.key === selectedBatchId);
+      return batch ? batch.src_file : selectedBatchId;
+    })();
+
+    if (!batchName) return;
     const fileKey = `${batchName}/${fileName}`;
 
     try {
@@ -290,6 +287,9 @@ export default function CoberturasAceptadas() {
       // Close progress modal
       setUploadProgress(prev => ({ ...prev, active: false }));
 
+      // Refresh existing files list
+      fetchExistingFiles();
+
       // Show SweetAlert2 success dialog
       Swal.fire({
         icon: failedCount === 0 ? 'success' : (completedCount > 0 ? 'warning' : 'error'),
@@ -396,6 +396,7 @@ export default function CoberturasAceptadas() {
 
         // Refresh list and reset view to master
         fetchCoberturas();
+        fetchExistingFiles();
         setSelectedBatchId(null);
       } else {
         Swal.fire({
@@ -848,13 +849,14 @@ export default function CoberturasAceptadas() {
                   <th className="px-6 py-4">Archivo</th>
                   <th className="px-6 py-4">Fecha de Carga</th>
                   <th className="px-6 py-4 text-center">Pólizas Confirmadas</th>
+                  <th className="px-6 py-4">Archivo Procesado</th>
                   <th className="px-6 py-4 text-right">Acción</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {paginatedBatches.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-10 text-center text-slate-400 text-sm">
+                    <td colSpan={5} className="px-6 py-10 text-center text-slate-400 text-sm">
                       No se encontraron archivos de coberturas cargados.
                     </td>
                   </tr>
@@ -888,6 +890,35 @@ export default function CoberturasAceptadas() {
                           <CheckCircle2 size={13} className="text-[#00AEEF] shrink-0" />
                           <span>{batch.confirmed} / {batch.total}</span>
                         </span>
+                      </td>
+                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                        {batch.src_file ? (
+                          (() => {
+                            const processedFileName = `${batch.src_file}_processed.csv`;
+                            const fileKey = `${batch.src_file}/${processedFileName}`;
+                            const isFileUploaded = existingFiles.includes(fileKey);
+                            return isFileUploaded ? (
+                              <button 
+                                onClick={() => handleDownloadFile(processedFileName, batch.src_file)}
+                                className="inline-flex items-center gap-1.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 px-2.5 py-1 rounded transition-all shadow-sm cursor-pointer"
+                                title="Descargar archivo procesado desde Cloudflare R2"
+                              >
+                                <Download size={13} className="text-emerald-600" />
+                                <span className="max-w-[150px] truncate">{processedFileName}</span>
+                              </button>
+                            ) : (
+                              <div 
+                                className="inline-flex items-center gap-1.5 text-xs font-medium bg-slate-50 text-slate-400 border border-slate-200 px-2.5 py-1 rounded select-none"
+                                title="Archivo procesado aún no cargado en Cloudflare R2"
+                              >
+                                <FileText size={13} />
+                                <span className="max-w-[150px] truncate text-slate-400">{processedFileName}</span>
+                              </div>
+                            );
+                          })()
+                        ) : (
+                          '-'
+                        )}
                       </td>
                       <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-3">
@@ -1048,7 +1079,7 @@ export default function CoberturasAceptadas() {
         onChange={handleFolderInputChange}
         className="hidden"
         multiple
-        accept=".pdf"
+        accept=".pdf,.csv"
       />
 
       {/* Upload Progress Modal */}
