@@ -13,6 +13,7 @@ import AdminUsers from './components/AdminUsers';
 import Profile from './components/Profile';
 import AceptarCobertura from './components/AceptarCobertura';
 import CoberturasAceptadas from './components/CoberturasAceptadas';
+import Transcriptions from './components/Transcriptions';
 
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -73,6 +74,7 @@ export default function App() {
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/usuarios" element={isAdmin ? <AdminUsers /> : <Navigate to="/dashboard" replace />} />
                     <Route path="/coberturas" element={(isAdmin || isLegales || isCoberturas) ? <CoberturasAceptadas /> : <Navigate to="/dashboard" replace />} />
+                    <Route path="/transcripciones" element={isAdmin ? <Transcriptions /> : <Navigate to="/dashboard" replace />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
