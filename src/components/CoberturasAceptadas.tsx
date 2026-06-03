@@ -182,7 +182,7 @@ export default function CoberturasAceptadas() {
     const batchName = uploadingBatch.src_file || 'lote_sin_nombre';
     
     try {
-      const fileArray = Array.from(files);
+      const fileArray = Array.from(files) as File[];
       const totalFiles = fileArray.length;
       
       const filesPayload = fileArray.map(file => {

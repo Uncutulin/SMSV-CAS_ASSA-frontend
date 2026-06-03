@@ -200,6 +200,7 @@ export default function Transcriptions() {
   const handleFilesSelected = (fileList: FileList) => {
     const validFiles: File[] = [];
     const newQueueItems: UploadProgress[] = [];
+    const MAX_SIZE_BYTES = 50000 * 1024; // 50,000 KB to match backend limit
 
     for (let i = 0; i < fileList.length; i++) {
       const file = fileList[i];
@@ -207,6 +208,15 @@ export default function Transcriptions() {
       
       // Basic check for audio formats
       if (['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac'].includes(ext || '')) {
+        if (file.size > MAX_SIZE_BYTES) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Archivo demasiado grande',
+            text: `El archivo '${file.name}' supera el límite de 50MB permitido.`,
+            confirmButtonColor: '#00AEEF'
+          });
+          continue;
+        }
         validFiles.push(file);
         newQueueItems.push({
           filename: file.name,
