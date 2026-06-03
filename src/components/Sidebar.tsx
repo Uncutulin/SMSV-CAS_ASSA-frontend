@@ -13,7 +13,8 @@ import {
   Settings2,
   Wallet,
   Calculator,
-  Landmark
+  Landmark,
+  AudioLines
 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
 import { motion } from 'motion/react';
@@ -123,6 +124,15 @@ export default function Sidebar({ onLogout, user, isOpen, onClose }: { onLogout?
             label="Coberturas Aceptadas"
             active={currentPath === '/coberturas'}
             onClick={() => handleNavigation('/coberturas')}
+          />
+        )}
+
+        {isAdmin && (
+          <SidebarItem
+            icon={AudioLines}
+            label="Transcripciones"
+            active={currentPath === '/transcripciones'}
+            onClick={() => handleNavigation('/transcripciones')}
           />
         )}
 
