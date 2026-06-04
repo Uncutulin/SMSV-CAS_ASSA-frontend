@@ -29,6 +29,7 @@ interface Transcription {
   call_index: string;
   transcription: string;
   created_at: string;
+  status?: 'pending' | 'processing' | 'completed' | 'failed';
 }
 
 interface UploadProgress {
@@ -36,6 +37,7 @@ interface UploadProgress {
   progress: number;
   status: 'pending' | 'uploading' | 'processing' | 'success' | 'error';
   errorMsg?: string;
+  id?: number;
 }
 
 export default function Transcriptions() {
@@ -68,6 +70,55 @@ export default function Transcriptions() {
   useEffect(() => {
     fetchTranscriptions();
   }, [appliedPage]);
+
+  // Silent fetch for table polling
+  const fetchTranscriptionsSilent = async () => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      
+      const queryParams = new URLSearchParams();
+      queryParams.append('page', String(appliedPage));
+      if (filterAgentId) queryParams.append('agent_id', filterAgentId);
+      if (filterCallIndex) queryParams.append('call_index', filterCallIndex);
+      if (filterCallDate) queryParams.append('call_date', filterCallDate);
+
+      const response = await fetch(`${API_URL}/admin/transcriptions?${queryParams.toString()}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const resData = await response.json();
+        if (resData.success) {
+          setTranscriptions(resData.data.data);
+          setPagination({
+            current_page: resData.data.current_page,
+            last_page: resData.data.last_page,
+            total: resData.data.total,
+            from: resData.data.from || 0,
+            to: resData.data.to || 0,
+            per_page: resData.data.per_page
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Error silent fetching transcriptions:', e);
+    }
+  };
+
+  // Auto-polling for active table items
+  useEffect(() => {
+    const hasActiveTranscriptions = transcriptions.some(
+      t => t.status === 'pending' || t.status === 'processing'
+    );
+
+    if (!hasActiveTranscriptions) return;
+
+    const interval = setInterval(() => {
+      fetchTranscriptionsSilent();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [transcriptions, appliedPage, filterAgentId, filterCallIndex, filterCallDate]);
 
   // Handle filter changes (debounced search would be nice, but simple search button or immediate trigger works)
   const handleApplyFilters = () => {
@@ -239,6 +290,47 @@ export default function Transcriptions() {
     }
   };
 
+  const pollTranscriptionStatus = (id: number, filename: string) => {
+    const token = localStorage.getItem('auth_token');
+    const interval = setInterval(async () => {
+      try {
+        const response = await fetch(`${API_URL}/admin/transcriptions/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const resData = await response.json();
+          if (resData.success) {
+            const status = resData.data.status;
+            if (status === 'completed') {
+              clearInterval(interval);
+              setUploadQueue(prev => prev.map(item => 
+                item.filename === filename ? { ...item, status: 'success', progress: 100 } : item
+              ));
+              fetchTranscriptions(); // Refresh the list
+            } else if (status === 'failed') {
+              clearInterval(interval);
+              setUploadQueue(prev => prev.map(item => 
+                item.filename === filename ? { 
+                  ...item, 
+                  status: 'error', 
+                  progress: 100, 
+                  errorMsg: resData.data.transcription || 'Fallo en la transcripción.' 
+                } : item
+              ));
+              fetchTranscriptions(); // Refresh the list
+            } else if (status === 'processing') {
+              setUploadQueue(prev => prev.map(item => 
+                item.filename === filename ? { ...item, status: 'processing', progress: 80 } : item
+              ));
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Error polling transcription status:', e);
+      }
+    }, 5000);
+  };
+
   const processUploadQueue = async (files: File[]) => {
     setIsUploading(true);
     const token = localStorage.getItem('auth_token');
@@ -269,9 +361,14 @@ export default function Transcriptions() {
         const data = await response.json();
 
         if (response.ok && data.success) {
+          const createdTranscription = data.data;
           setUploadQueue(prev => prev.map(item => 
-            item.filename === file.name ? { ...item, status: 'success', progress: 100 } : item
+            item.filename === file.name 
+              ? { ...item, id: createdTranscription.id, status: 'processing', progress: 60 } 
+              : item
           ));
+          pollTranscriptionStatus(createdTranscription.id, file.name);
+          fetchTranscriptions(1);
         } else {
           setUploadQueue(prev => prev.map(item => 
             item.filename === file.name ? { 
@@ -296,7 +393,6 @@ export default function Transcriptions() {
     }
 
     setIsUploading(false);
-    fetchTranscriptions(1); // Reload first page on complete
   };
 
   const clearQueue = () => {
@@ -495,6 +591,7 @@ export default function Transcriptions() {
                 <th className="px-6 py-4">Horario (ARG / UTC)</th>
                 <th className="px-6 py-4">Índice de Llamada</th>
                 <th className="px-6 py-4">Nombre Archivo</th>
+                <th className="px-6 py-4">Estado</th>
                 <th className="px-6 py-4 text-right">Acciones</th>
               </tr>
             </thead>
@@ -525,14 +622,50 @@ export default function Transcriptions() {
                   <td className="px-6 py-4 text-xs text-slate-500 truncate max-w-[200px]" title={t.filename}>
                     {t.filename}
                   </td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-bold border ${
+                      t.status === 'completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                      t.status === 'failed' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                      t.status === 'processing' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                      'bg-amber-50 text-amber-700 border-amber-200'
+                    }`}>
+                      {t.status === 'processing' && (
+                        <svg className="animate-spin h-3 w-3 text-blue-600 mr-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                      )}
+                      {t.status === 'completed' && 'Completado'}
+                      {t.status === 'failed' && 'Fallido'}
+                      {t.status === 'processing' && 'Procesando...'}
+                      {t.status === 'pending' && 'Pendiente'}
+                      {!t.status && 'Completado'}
+                    </span>
+                  </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
                       <button
                         onClick={() => setActiveTranscription(t)}
-                        className="p-2 rounded bg-[#00AEEF]/10 text-[#003865] hover:bg-[#00AEEF]/20 transition-colors"
-                        title="Ver Transcripción"
+                        disabled={t.status === 'pending' || t.status === 'processing'}
+                        className={`p-2 rounded transition-colors ${
+                          t.status === 'pending' || t.status === 'processing'
+                            ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                            : 'bg-[#00AEEF]/10 text-[#003865] hover:bg-[#00AEEF]/20'
+                        }`}
+                        title={
+                          t.status === 'pending' || t.status === 'processing'
+                            ? "Procesando transcripción..."
+                            : "Ver Transcripción"
+                        }
                       >
-                        <FileText size={14} />
+                        {t.status === 'pending' || t.status === 'processing' ? (
+                          <svg className="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                        ) : (
+                          <FileText size={14} />
+                        )}
                       </button>
                       <button
                         onClick={() => handleDelete(t.id)}
@@ -547,7 +680,7 @@ export default function Transcriptions() {
               ))}
               {transcriptions.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-sm text-slate-500 font-medium">
+                  <td colSpan={7} className="px-6 py-12 text-center text-sm text-slate-500 font-medium">
                     No se encontraron registros de transcripciones.
                   </td>
                 </tr>
