@@ -32,13 +32,7 @@ interface Transcription {
   status?: 'pending' | 'processing' | 'completed' | 'failed';
 }
 
-interface UploadProgress {
-  filename: string;
-  progress: number;
-  status: 'pending' | 'uploading' | 'processing' | 'success' | 'error';
-  errorMsg?: string;
-  id?: number;
-}
+
 
 export default function Transcriptions() {
   const [transcriptions, setTranscriptions] = useState<Transcription[]>([]);
@@ -59,7 +53,7 @@ export default function Transcriptions() {
   const [appliedPage, setAppliedPage] = useState(1);
 
   // Upload state
-  const [uploadQueue, setUploadQueue] = useState<UploadProgress[]>([]);
+
   const [dragActive, setDragActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -250,7 +244,6 @@ export default function Transcriptions() {
 
   const handleFilesSelected = (fileList: FileList) => {
     const validFiles: File[] = [];
-    const newQueueItems: UploadProgress[] = [];
     const MAX_SIZE_BYTES = 50000 * 1024; // 50,000 KB to match backend limit
 
     for (let i = 0; i < fileList.length; i++) {
@@ -269,11 +262,6 @@ export default function Transcriptions() {
           continue;
         }
         validFiles.push(file);
-        newQueueItems.push({
-          filename: file.name,
-          progress: 0,
-          status: 'pending'
-        });
       } else {
         Swal.fire({
           icon: 'warning',
@@ -285,50 +273,8 @@ export default function Transcriptions() {
     }
 
     if (validFiles.length > 0) {
-      setUploadQueue(prev => [...prev, ...newQueueItems]);
       processUploadQueue(validFiles);
     }
-  };
-
-  const pollTranscriptionStatus = (id: number, filename: string) => {
-    const token = localStorage.getItem('auth_token');
-    const interval = setInterval(async () => {
-      try {
-        const response = await fetch(`${API_URL}/admin/transcriptions/${id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (response.ok) {
-          const resData = await response.json();
-          if (resData.success) {
-            const status = resData.data.status;
-            if (status === 'completed') {
-              clearInterval(interval);
-              setUploadQueue(prev => prev.map(item => 
-                item.filename === filename ? { ...item, status: 'success', progress: 100 } : item
-              ));
-              fetchTranscriptions(); // Refresh the list
-            } else if (status === 'failed') {
-              clearInterval(interval);
-              setUploadQueue(prev => prev.map(item => 
-                item.filename === filename ? { 
-                  ...item, 
-                  status: 'error', 
-                  progress: 100, 
-                  errorMsg: resData.data.transcription || 'Fallo en la transcripción.' 
-                } : item
-              ));
-              fetchTranscriptions(); // Refresh the list
-            } else if (status === 'processing') {
-              setUploadQueue(prev => prev.map(item => 
-                item.filename === filename ? { ...item, status: 'processing', progress: 80 } : item
-              ));
-            }
-          }
-        }
-      } catch (e) {
-        console.error('Error polling transcription status:', e);
-      }
-    }, 5000);
   };
 
   const processUploadQueue = async (files: File[]) => {
@@ -337,20 +283,10 @@ export default function Transcriptions() {
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      
-      // Update status to uploading
-      setUploadQueue(prev => prev.map(item => 
-        item.filename === file.name ? { ...item, status: 'uploading', progress: 20 } : item
-      ));
 
       try {
         const formData = new FormData();
         formData.append('file', file);
-
-        // Update status to processing (the python run might take time)
-        setUploadQueue(prev => prev.map(item => 
-          item.filename === file.name ? { ...item, status: 'processing', progress: 50 } : item
-        ));
 
         const response = await fetch(`${API_URL}/admin/transcriptions/upload`, {
           method: 'POST',
@@ -361,44 +297,17 @@ export default function Transcriptions() {
         const data = await response.json();
 
         if (response.ok && data.success) {
-          const createdTranscription = data.data;
-          setUploadQueue(prev => prev.map(item => 
-            item.filename === file.name 
-              ? { ...item, id: createdTranscription.id, status: 'processing', progress: 60 } 
-              : item
-          ));
-          pollTranscriptionStatus(createdTranscription.id, file.name);
           fetchTranscriptions(1);
         } else {
-          setUploadQueue(prev => prev.map(item => 
-            item.filename === file.name ? { 
-              ...item, 
-              status: 'error', 
-              progress: 100, 
-              errorMsg: data.message || 'Error en el procesamiento.' 
-            } : item
-          ));
+          Swal.fire('Error', data.message || 'Error al procesar el archivo.', 'error');
         }
       } catch (e) {
         console.error(e);
-        setUploadQueue(prev => prev.map(item => 
-          item.filename === file.name ? { 
-            ...item, 
-            status: 'error', 
-            progress: 100, 
-            errorMsg: 'Fallo de red o servidor.' 
-          } : item
-        ));
+        Swal.fire('Error', 'Fallo de red o servidor.', 'error');
       }
     }
 
     setIsUploading(false);
-  };
-
-  const clearQueue = () => {
-    if (!isUploading) {
-      setUploadQueue([]);
-    }
   };
 
   return (
@@ -449,57 +358,6 @@ export default function Transcriptions() {
             <p className="text-xs text-slate-400 mt-1">o haz clic para explorar en tu equipo</p>
             <p className="text-[10px] text-slate-400 mt-3 font-semibold">Formatos: MP3, WAV, OGG, M4A (Máx. 50MB)</p>
           </div>
-
-          {/* Upload Queue Status */}
-          {uploadQueue.length > 0 && (
-            <div className="mt-5 border-t border-slate-100 pt-4 max-h-[220px] overflow-y-auto custom-scrollbar">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-                  Cola de procesamiento ({uploadQueue.length})
-                </span>
-                {!isUploading && (
-                  <button 
-                    onClick={clearQueue}
-                    className="text-xs text-rose-500 hover:text-rose-700 font-semibold hover:underline"
-                  >
-                    Limpiar cola
-                  </button>
-                )}
-              </div>
-              <div className="space-y-2">
-                {uploadQueue.map((item, idx) => (
-                  <div key={idx} className="p-2 bg-slate-50 border border-slate-100 rounded-lg text-xs">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="font-semibold text-slate-700 truncate max-w-[180px]">{item.filename}</span>
-                      <span className={`font-bold ${
-                        item.status === 'success' ? 'text-emerald-600' :
-                        item.status === 'error' ? 'text-rose-600' :
-                        item.status === 'processing' ? 'text-[#00AEEF] animate-pulse' : 'text-slate-500'
-                      }`}>
-                        {item.status === 'pending' && 'En espera'}
-                        {item.status === 'uploading' && 'Subiendo...'}
-                        {item.status === 'processing' && 'Transcribiendo...'}
-                        {item.status === 'success' && 'Completo'}
-                        {item.status === 'error' && 'Error'}
-                      </span>
-                    </div>
-                    {item.status === 'error' && item.errorMsg && (
-                      <p className="text-[10px] text-rose-500 font-medium mb-1">{item.errorMsg}</p>
-                    )}
-                    <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
-                      <div 
-                        className={`h-full transition-all duration-300 ${
-                          item.status === 'success' ? 'bg-emerald-500' :
-                          item.status === 'error' ? 'bg-rose-500' : 'bg-[#00AEEF]'
-                        }`}
-                        style={{ width: `${item.progress}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Filters and List */}
